@@ -1,0 +1,47 @@
+name: Build
+
+on:
+  workflow_call:
+    inputs:
+      project-version:
+        required: true
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Dotnet
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0'
+
+      - name: Assemble
+        uses: jreleaser/release-action@v2
+        with:
+          arguments: assemble
+        env:
+          JRELEASER_PROJECT_VERSION: ${{ inputs.project-version }}
+          JRELEASER_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: JReleaser output
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: jreleaser-assemble-${{ matrix.job.platform }}
+          path: |
+            out/jreleaser/trace.log
+            out/jreleaser/output.properties
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v5
+        with:
+          retention-days: 1
+          name: artifact-${{ matrix.job.platform }}
+          path: |
+            out/jreleaser/assemble/helloworld/archive/*.zip
+
